@@ -49,15 +49,16 @@ data.drop(["index"], axis = 1, inplace = True)
 #Function to preprocess the text
 #Below shown special characters are removed from the text
 def wordopt(text):
-  text = text.lower()
-  text = re.sub(r'\\[.*?\\]', '', text)
-  text = re.sub(r"\\W"," ",text) 
-  text = re.sub(r'https?://\\s+|www\\.\\s+', '', text) 
-  text = re.sub(r'<.*?>', '', text)
-  text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
-  text = re.sub('\\n', '', text)
-  text = re.sub(r'\\w*\\d\\w*', '', text)
-  return text
+    text = text.lower()
+    text = re.sub('\[.*?\]', '', text)
+    text = re.sub("\\W"," ",text) 
+    text = re.sub('https?://\S+|www\.\S+', '', text)
+    text = re.sub('<.*?>+', '', text) 
+    text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
+    text = re.sub('\n', '', text)
+    text = re.sub('\w*\d\w*', '', text)
+
+    return text
 
 data['text'] = data['text'].apply(wordopt)
 
@@ -117,7 +118,7 @@ print(classification_report(y_test, pred_rf))
 def output_label(dataset):
     if dataset == 0:
         return "Fake News"
-    else:
+    elif dataset == 1:
         return "True News"
     
 def manual_testing(news):
