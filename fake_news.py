@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn import model_selection, svm
 import re
 import string 
 
@@ -11,20 +12,20 @@ import string
 #Below shown special characters are removed from the text
 def wordopt(text):
     text = text.lower()
-    text = re.sub('\[.*?\]', '', text)
-    text = re.sub("\\W"," ",text) 
-    text = re.sub('https?://\S+|www\.\S+', '', text)
-    text = re.sub('<.*?>+', '', text) 
-    text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
-    text = re.sub('\n', '', text)
-    text = re.sub('\w*\d\w*', '', text)
+    text = re.sub(r'\[.*?\]', '', text)  # Use r to denote a raw string
+    text = re.sub(r"\\W", " ", text)     # Double backslash to escape it properly
+    text = re.sub(r'https?://\S+|www\.\S+', '', text)
+    text = re.sub(r'<.*?>+', '', text)
+    text = re.sub(r'[%s]' % re.escape(string.punctuation), '', text)
+    text = re.sub(r'\n', '', text)
+    text = re.sub(r'\w*\d\w*', '', text)
     return text
 
 #Function to return the output label
 def output_label(dataset):
-    if dataset == 0:
+    if dataset == "FAKE":
         return "Fake News"
-    elif dataset == 1:
+    elif dataset == "REAL":
         return "True News"
     
 #Function to manually test the news
@@ -35,42 +36,16 @@ def manual_testing(news):
     new_x_test = new_def_test["text"]
     new_xv_test = vectorization.transform(new_x_test)
     pred_LR = LR.predict(new_xv_test)
-    pred_DT = DT.predict(new_xv_test)
-    pred_GB = GB.predict(new_xv_test)
-    pred_RF = RF.predict(new_xv_test)
-    return print("\n\nLR Prediction: {} \nDT Prediction: {} \nGB Prediction: {} \nRF Prediction: {}".format(output_label(pred_LR[0]), 
-                                                                                                            output_label(pred_DT[0]), 
-                                                                                                            output_label(pred_GB[0]), 
-                                                                                                            output_label(pred_RF[0])))
-# import the fake and real news datasets
-data_fake = pd.read_csv('NEWS/Fake.csv')
-data_true = pd.read_csv('NEWS/True.csv')
+    pred_SVM = SVM.predict(new_xv_test)
+    return print("\n\nLR Prediction: {} \nSVM Prediction: {}".format(output_label(pred_LR[0]), 
+                                                                    output_label(pred_SVM[0])))
 
-#Returns the first 5 rows of the dataframe
-data_fake.head()
-data_true.head()
+# load the data
+news_data = pd.read_csv('NEWS/news.csv')
 
-# Add a target class column to indicate whether the news is real or fake
-data_fake["class"] = 0 
-data_true["class"] = 1
-
-#Remove last 10 rows for manual testing 
-data_fake_manual_testing = data_fake.tail(10)
-#shape() was used to get the number of rows and columns in data_fake and data_true
-for i in range(23480,23470,-1):
-    data_fake.drop([i], axis = 0, inplace = True)
-
-data_true_manual_testing = data_true.tail(10)
-for i in range(21416,21406,-1):
-    data_true.drop([i], axis = 0, inplace = True)
-
-data_fake_manual_testing["class"] = 0
-data_true_manual_testing["class"] = 1
-
-#Merging the fake and true news data in single dataset 
-data_merge = pd.concat([data_fake , data_true], axis = 0) 
-data = data_merge.drop(["title", "subject","date"], axis = 1)
-data.isnull().sum()
+#droping the columns which are not required
+data = news_data.drop(['Unnamed: 0','title'], axis=1)
+#print(data.isnull().sum())
 
 #Randomly shuffle the 'data' so that the model does not learn the order of the data
 data = data.sample(frac = 1)
@@ -82,10 +57,10 @@ data['text'] = data['text'].apply(wordopt)
 
 #Feature and lables
 x = data['text']    #feature of the dataset    
-y = data['class']   #label of the dataset   
+y = data['label']   #label of the dataset   
 
 #Splitting the data into training and testing sets
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.25)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2)
 
 #Convert text into vectors using TF-IDF
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -99,43 +74,23 @@ LR = LogisticRegression()
 LR.fit(xvect_train, y_train) #xvect_train is the feature matrix of the training set and y_train is the corresponding vector of labels
 pred_lr = LR.predict(xvect_test)
 #Accuracy score for Logistic Regression model
-LR.score(xvect_test, y_test)
+print("Accuracy of Logistic Regression model:", LR.score(xvect_test, y_test)*100)
 #Print classification report. The classification_report function builds a text report showing the main classification metrics
+print("Classification Report of Logistic Regression:")
 print(classification_report(y_test, pred_lr))
 
-#Decision Tree Classifier model
-from sklearn.tree import DecisionTreeClassifier
-DT = DecisionTreeClassifier()
-DT.fit(xvect_train, y_train)
-pred_dt = DT.predict(xvect_test)
-#Accuracy score for Decision Tree model
-DT.score(xvect_test, y_test)
-#Print classification report. 
-print(classification_report(y_test, pred_dt))
-
-#Gradient Boosting Classifier model
-from sklearn.ensemble import GradientBoostingClassifier
-GB = GradientBoostingClassifier(random_state=0)
-GB.fit(xvect_train, y_train)
-pred_gb = GB.predict(xvect_test)
-#Accuracy score for Gradient Boosting Classifier model
-GB.score(xvect_test, y_test)
-#Print classification report. 
-print(classification_report(y_test, pred_gb))
-
-#Random Forest Classifier model
-from sklearn.ensemble import RandomForestClassifier
-RF = RandomForestClassifier(random_state = 0)
-RF.fit(xvect_train, y_train)
-pred_rf = RF.predict(xvect_test)
-#Accuracy score for Random Forest Classifier model
-RF.score(xvect_test, y_test) 
-#Print classification report.
-print(classification_report(y_test, pred_rf))  
+#Using Support Vector Machine to build the model
+print("Performing Support Vector Machine Classification..........")
+SVM = svm.SVC( C= 1.0, kernel = 'linear')
+SVM.fit(xvect_train, y_train)
+pred_SVM = SVM.predict(xvect_test)
+#Accuracy of the model
+print("Accuracy of SVM model: ", accuracy_score(y_test, pred_SVM)*100)
+#Print classification report. The classification_report function builds a text report showing the main classification metrics
+print("Classification Report of SVM:")
+print(classification_report(y_test, pred_SVM))
 
 #Recieving the news from user  
 print("Enter the news text")
 news = str(input())
 manual_testing(news)
-
-
