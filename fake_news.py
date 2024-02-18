@@ -12,7 +12,7 @@ import string
 #Below shown special characters are removed from the text
 def wordopt(text):
     text = text.lower()
-    text = re.sub(r'\[.*?\]', '', text)  # Use r to denote a raw string
+    text = re.sub(r'\[.*?\]', '', text)  # User to denote a raw string
     text = re.sub(r"\\W", " ", text)     # Double backslash to escape it properly
     text = re.sub(r'https?://\S+|www\.\S+', '', text)
     text = re.sub(r'<.*?>+', '', text)
@@ -47,7 +47,7 @@ news_data = pd.read_csv('NEWS/news.csv')
 data = news_data.drop(['Unnamed: 0','title'], axis=1)
 #print(data.isnull().sum())
 
-#Randomly shuffle the 'data' so that the model does not learn the order of the data
+#Here, I am randomly shuffle the 'data' so that the model does not learn the order of the data
 data = data.sample(frac = 1)
 data.reset_index(inplace = True)
 data.drop(["index"], axis = 1, inplace = True)
